@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PulmoSense-AI · Aplikasi Pasien</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="app" id="app">
+  <header class="top">
+    <div class="brand"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v9M9 8c-3 1-5 5-5 9 0 2 1 3 3 3 2 0 3-1 3-3V9M15 8c3 1 5 5 5 9 0 2-1 3-3 3-2 0-3-1-3-3V9"/></svg>PulmoSense<b>-AI</b></div>
+    <div class="header-actions">
+      <button class="icon" id="themeToggle" aria-label="Ganti Tema"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+      <button class="icon" id="bell" aria-label="Notifikasi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></svg><i class="dot"></i></button>
+    </div>
+  </header>
+
+  <!-- BERANDA -->
+  <section class="view on" id="v-beranda">
+    <h1>Halo, <span id="nm">Faisal Akbar</span></h1>
+    <div class="grid2 big">
+      <div class="stat"><small>FEV1</small><strong id="d-fev1">2,61</strong><em>L · 81% prediksi</em></div>
+      <div class="stat"><small>FVC</small><strong id="d-fvc">3,21</strong><em>L</em></div>
+      <div class="stat"><small>FEV1/FVC</small><strong id="d-rat">0,81</strong><em>81%</em></div>
+      <div class="stat q"><small>Kualitas manuver</small><span class="chip ok" id="d-q">Layak</span><em>Dinilai oleh CNN 1D</em></div>
+    </div>
+    <div class="card ai"><h3>Analisis AI &amp; Interpretasi Klinis</h3><p id="d-ai">Pola kurva normal. Tidak ada tanda hambatan aliran udara.</p><p class="mut" id="d-gold">Klasifikasi GOLD tidak berlaku (FEV1/FVC ≥ 0,70).</p></div>
+    <div class="card warn" id="alert"><b>Pemberitahuan Status</b><span>Belum ada penurunan fungsi paru bermakna. FEV1 naik 10% sejak 3 Jan.</span></div>
+    <div class="card"><h3>Patokan Standar Paru Sehat (ERS/ATS 2022)</h3>
+      <p class="mut" style="font-size:12px; margin-bottom:8px;">Batas Bawah Normal (LLN) / Z-score ≥ -1,645 berdasarkan standar GLI Stanojevic et al.</p>
+      <div class="grid3"><div><small>FEV1 LLN</small><b>Z ≥ -1.65</b></div><div><small>FVC LLN</small><b>Z ≥ -1.65</b></div><div><small>Rasio LLN</small><b>Z ≥ -1.65</b></div></div>
+    </div>
+    <div class="card"><h3>Parameter lain</h3>
+      <div class="grid3"><div><small>PEF</small><b>6,72</b> L/s</div><div><small>FEF25–75%</small><b>2,90</b> L/s</div><div><small>SVC</small><b>3,28</b> L</div></div></div>
+    <div class="card"><h3>Sensor tambahan</h3>
+      <div class="grid3"><div><small>SpO₂</small><b>98</b>%</div><div><small>Napas</small><b>16</b>/mnt</div><div><small>Denyut</small><b>74</b> bpm</div></div></div>
+    <div class="card"><h3>Gejala hari ini</h3>
+      <div class="tags" id="sym"></div></div>
+    <div class="grid2"><button class="tile" data-go="periksa">Pemeriksaan baru</button><button class="tile" data-go="hasil">Hasil pemeriksaan</button><button class="tile" data-go="riwayat">Riwayat &amp; tren</button><button class="tile" data-go="profil">Profil pasien</button></div>
+  </section>
+
+  <!-- PERIKSA -->
+  <section class="view" id="v-periksa">
+    <h1>Pemeriksaan baru</h1>
+    <div class="card row"><div><small>Koneksi perangkat</small><b id="devname">Belum terhubung</b></div><span class="chip off" id="conn">Terputus</span></div>
+    <button class="btn alt" id="btnConn">Hubungkan via Bluetooth</button>
+    <div class="card"><h3>Uji spirometri</h3><canvas id="cv" width="320" height="170"></canvas>
+      <div class="prog"><div class="bar"><i id="bar"></i></div><span id="pct">0%</span></div>
+      <p class="mut" id="hint">Tarik napas dalam, lalu hembuskan sekuat dan secepat mungkin.</p></div>
+    <button class="btn" id="btnStart" disabled>Mulai pemeriksaan</button>
+  </section>
+
+  <!-- HASIL -->
+  <section class="view" id="v-hasil">
+    <h1>Hasil pemeriksaan <span class="chip ok" id="h-q">Layak</span></h1>
+    <p class="mut" id="h-date">15 Jan 2025, 10:24</p>
+    <div class="card" id="statusCardBanner"><b>Status Indikator: <span id="statusTextIndicator">Baik (Hijau)</span></b></div>
+    <div class="card"><table id="tbl"></table></div>
+    <div class="card"><h3>Kurva volume–waktu</h3><svg id="svgVT" viewBox="0 0 300 150"></svg></div>
+    <div class="card"><h3>Kurva aliran–volume</h3><svg id="svgFV" viewBox="0 0 300 150"></svg></div>
+    <div class="card"><h3>Gangguan yang dinilai</h3><ul class="chk"><li>PPOK<span>Tidak terindikasi</span></li><li>Asma<span>Tidak terindikasi</span></li><li>Restriktif<span>Tidak terindikasi</span></li><li>Obstruksi saluran napas atas<span>Tidak terindikasi</span></li></ul></div>
+    <button class="btn" data-pdf>Ekspor semua laporan (PDF)</button>
+  </section>
+
+  <!-- RIWAYAT -->
+  <section class="view" id="v-riwayat">
+    <h1>Riwayat &amp; tren</h1>
+    <div class="seg"><button class="on" data-t="list">Riwayat</button><button data-t="trend">Tren</button></div>
+    <div id="list"></div>
+    <div id="trend" hidden><div class="card"><h3>Tren FEV1/FVC</h3><svg id="svgTr" viewBox="0 0 300 160"></svg></div>
+    <div class="card"><h3>Prediksi AI</h3><p>Fungsi paru stabil dan membaik. Perkiraan FEV1 pemeriksaan berikutnya: <b>2,65–2,75 L</b>.</p></div></div>
+  </section>
+
+  <!-- PROFIL -->
+  <section class="view" id="v-profil">
+    <h1>Profil pasien</h1>
+    <div class="card prof"><div class="ava">F</div><div><b>Faisal Akbar</b><small>ID: P-0003</small></div></div>
+    <div class="card"><dl><dt>Usia</dt><dd>20 tahun</dd><dt>Jenis kelamin</dt><dd>Laki-laki</dd><dt>Tinggi badan</dt><dd>175 cm</dd><dt>Catatan</dt><dd>Kontrol rutin, tanpa keluhan</dd><dt>Tenaga kesehatan</dt><dd>dr. Adzka Channel, S.Ked</dd></dl></div>
+    <button class="btn" data-pdf>Ekspor semua laporan (PDF)</button>
+    <p class="mut note">Hasil AI bersifat pendukung. Interpretasi akhir tetap oleh tenaga kesehatan.</p>
+  </section>
+
+  <nav class="nav">
+    <button class="on" data-go="beranda"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Beranda</button>
+    <button data-go="periksa"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Periksa</button>
+    <button data-go="riwayat"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/></svg>Riwayat</button>
+    <button data-go="profil"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profil</button>
+  </nav>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
