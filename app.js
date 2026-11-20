@@ -130,7 +130,7 @@ function curves(r){
   for(let i=0;i<=40;i++){const v=i/40*r.fvc; const x=v/r.fvc; const fl=r.pef*Math.min(1,x*6)*(1-x)**0.9; fv.push([30+v/4*260,130-fl/8*115]);}
   const p=a=>a.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join('');
   $('#svgVT').innerHTML=axes(300,150)+`<path d="${p(vt)}" fill="none" stroke="var(--pri)" stroke-width="3"/><text x="150" y="148" font-size="9" fill="var(--mut)" text-anchor="middle">Waktu (s)</text>`;
-  $('#svgFV').innerHTML=axes(300,150)+`<path d="${p(fv)}Z" fill="#12b5a622" stroke="var(--pri)" stroke-width="3"/><text x="150" y="148" font-size="9" fill="var(--mut)" text-anchor="middle">Volume (L)</text>`;
+  $('#svgFV').innerHTML=axes(300,150)+`<path d="${p(fv)}Z" fill="var(--blue)" fill-opacity=".12" stroke="var(--pri)" stroke-width="3"/><text x="150" y="148" font-size="9" fill="var(--mut)" text-anchor="middle">Volume (L)</text>`;
 }
 function trend(){ // grafik FEV1 dan FVC (L) seperti pada desain
   const hs=[...history].reverse(), n=hs.length, all=hs.flatMap(h=>[h.fev1,h.fvc]), lo=Math.floor(Math.min(...all)-.3), hi=Math.ceil(Math.max(...all)+.3);
