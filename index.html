@@ -7,87 +7,140 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main class="app" id="app">
+<main class="app">
   <header class="top">
-    <div class="brand"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v9M9 8c-3 1-5 5-5 9 0 2 1 3 3 3 2 0 3-1 3-3V9M15 8c3 1 5 5 5 9 0 2-1 3-3 3-2 0-3-1-3-3V9"/></svg>PulmoSense<b>-AI</b></div>
-    <div class="header-actions">
-      <button class="icon" id="themeToggle" aria-label="Ganti Tema"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
-      <button class="icon" id="bell" aria-label="Notifikasi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></svg><i class="dot"></i></button>
-    </div>
+    <button class="ic" id="back" aria-label="Kembali" hidden>‹</button>
+    <h2 id="ttl">PulmoSense-AI</h2>
+    <button class="ic" id="theme" aria-label="Ganti mode terang atau gelap">☾</button>
   </header>
 
   <!-- BERANDA -->
   <section class="view on" id="v-beranda">
-    <h1>Halo, <span id="nm">Faisal Akbar</span></h1>
-    <div class="grid2 big">
-      <div class="stat"><small>FEV1</small><strong id="d-fev1">2,61</strong><em>L · 81% prediksi</em></div>
-      <div class="stat"><small>FVC</small><strong id="d-fvc">3,21</strong><em>L</em></div>
-      <div class="stat"><small>FEV1/FVC</small><strong id="d-rat">0,81</strong><em>81%</em></div>
-      <div class="stat q"><small>Kualitas manuver</small><span class="chip ok" id="d-q">Layak</span><em>Dinilai oleh CNN 1D</em></div>
+    <div class="hero">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v9M9 8c-3 1-5 5-5 9 0 2 1 3 3 3 2 0 3-1 3-3V9M15 8c3 1 5 5 5 9 0 2-1 3-3 3-2 0-3-1-3-3V9"/></svg>
+      <h1>PulmoSense-AI</h1><p class="mut">Smart Lung Health Monitoring</p>
     </div>
-    <div class="card ai"><h3>Analisis AI &amp; Interpretasi Klinis</h3><p id="d-ai">Pola kurva normal. Tidak ada tanda hambatan aliran udara.</p><p class="mut" id="d-gold">Klasifikasi GOLD tidak berlaku (FEV1/FVC ≥ 0,70).</p></div>
-    <div class="card warn" id="alert"><b>Pemberitahuan Status</b><span>Belum ada penurunan fungsi paru bermakna. FEV1 naik 10% sejak 3 Jan.</span></div>
-    <div class="card"><h3>Patokan Standar Paru Sehat (ERS/ATS 2022)</h3>
-      <p class="mut" style="font-size:12px; margin-bottom:8px;">Batas Bawah Normal (LLN) / Z-score ≥ -1,645 berdasarkan standar GLI Stanojevic et al.</p>
-      <div class="grid3"><div><small>FEV1 LLN</small><b>Z ≥ -1.65</b></div><div><small>FVC LLN</small><b>Z ≥ -1.65</b></div><div><small>Rasio LLN</small><b>Z ≥ -1.65</b></div></div>
+    <div class="card row"><div><b id="devname">Alat belum terhubung</b><small id="devsub">Hubungkan alat untuk mulai tes</small></div><span class="chip off" id="conn">Terputus</span></div>
+    <button class="btn alt" id="btnConn">Hubungkan alat (Bluetooth)</button>
+    <button class="btn" data-go="panduan">Mulai Pemeriksaan</button>
+    <div class="card status" id="status"></div>
+    <div class="grid2">
+      <button class="tile" data-go="panduan"><span>📋</span>Panduan Pemeriksaan</button>
+      <button class="tile" data-go="hasil" data-sel="0"><span>📄</span>Hasil Pemeriksaan</button>
+      <button class="tile" data-go="riwayat"><span>📈</span>Riwayat</button>
+      <button class="tile" data-go="bantuan"><span>💬</span>Bantuan &amp; FAQ</button>
     </div>
-    <div class="card"><h3>Parameter lain</h3>
-      <div class="grid3"><div><small>PEF</small><b>6,72</b> L/s</div><div><small>FEF25–75%</small><b>2,90</b> L/s</div><div><small>SVC</small><b>3,28</b> L</div></div></div>
-    <div class="card"><h3>Sensor tambahan</h3>
-      <div class="grid3"><div><small>SpO₂</small><b>98</b>%</div><div><small>Napas</small><b>16</b>/mnt</div><div><small>Denyut</small><b>74</b> bpm</div></div></div>
-    <div class="card"><h3>Gejala hari ini</h3>
-      <div class="tags" id="sym"></div></div>
-    <div class="grid2"><button class="tile" data-go="periksa">Pemeriksaan baru</button><button class="tile" data-go="hasil">Hasil pemeriksaan</button><button class="tile" data-go="riwayat">Riwayat &amp; tren</button><button class="tile" data-go="profil">Profil pasien</button></div>
+  </section>
+
+  <!-- PANDUAN -->
+  <section class="view" id="v-panduan">
+    <div class="card slide" id="slide"></div>
+    <div class="dots" id="dots"></div>
+    <button class="btn" id="next">Lanjut</button>
+    <button class="link" data-go="periksa">Lewati panduan</button>
   </section>
 
   <!-- PERIKSA -->
   <section class="view" id="v-periksa">
-    <h1>Pemeriksaan baru</h1>
-    <div class="card row"><div><small>Koneksi perangkat</small><b id="devname">Belum terhubung</b></div><span class="chip off" id="conn">Terputus</span></div>
-    <button class="btn alt" id="btnConn">Hubungkan via Bluetooth</button>
-    <div class="card"><h3>Uji spirometri</h3><canvas id="cv" width="320" height="170"></canvas>
+    <h2 class="instr" id="hint">Hubungkan alat di Beranda terlebih dahulu</h2>
+    <div class="card"><canvas id="cv" width="320" height="170"></canvas>
       <div class="prog"><div class="bar"><i id="bar"></i></div><span id="pct">0%</span></div>
-      <p class="mut" id="hint">Tarik napas dalam, lalu hembuskan sekuat dan secepat mungkin.</p></div>
-    <button class="btn" id="btnStart" disabled>Mulai pemeriksaan</button>
+      <p class="mut" style="text-align:center">Waktu: <b id="tm">0,0 s</b></p></div>
+    <div class="card row"><label for="sim"><small>Simulasi hasil (untuk demo)</small></label><select id="sim"><option value="baik">Paru baik</option><option value="kurang">Kurang baik</option><option value="parah">Parah</option></select></div>
+    <button class="btn" id="btnStart" disabled>Mulai tiup</button>
+  </section>
+
+  <!-- KUALITAS -->
+  <section class="view" id="v-kualitas">
+    <div class="card status st-ok"><b>Kualitas tiupan: Baik</b><span>Tiupan kamu bisa dipakai untuk dinilai.</span></div>
+    <div class="card"><ul class="ticks"><li>Awal tiupan sesuai</li><li>Tidak terdeteksi batuk</li><li>Tidak ada indikasi kebocoran</li><li>Durasi embusan cukup</li></ul></div>
+    <div class="card info">Hasil dapat digunakan. Lanjutkan ke hasil pemeriksaan.</div>
+    <button class="btn" id="btnRes">Lihat Hasil</button>
   </section>
 
   <!-- HASIL -->
   <section class="view" id="v-hasil">
-    <h1>Hasil pemeriksaan <span class="chip ok" id="h-q">Layak</span></h1>
-    <p class="mut" id="h-date">15 Jan 2025, 10:24</p>
-    <div class="card" id="statusCardBanner"><b>Status Indikator: <span id="statusTextIndicator">Baik (Hijau)</span></b></div>
-    <div class="card"><table id="tbl"></table></div>
-    <div class="card"><h3>Kurva volume–waktu</h3><svg id="svgVT" viewBox="0 0 300 150"></svg></div>
-    <div class="card"><h3>Kurva aliran–volume</h3><svg id="svgFV" viewBox="0 0 300 150"></svg></div>
-    <div class="card"><h3>Gangguan yang dinilai</h3><ul class="chk"><li>PPOK<span>Tidak terindikasi</span></li><li>Asma<span>Tidak terindikasi</span></li><li>Restriktif<span>Tidak terindikasi</span></li><li>Obstruksi saluran napas atas<span>Tidak terindikasi</span></li></ul></div>
-    <button class="btn" data-pdf>Ekspor semua laporan (PDF)</button>
+    <div class="card status" id="h-status"></div>
+    <p class="mut" id="h-date"></p>
+    <div id="meters"></div>
+    <div class="card"><h3>Apa yang sebaiknya kamu lakukan?</h3><ul class="todo" id="todo"></ul></div>
+    <div class="card alert" id="alert"><b>Dibanding pemeriksaan sebelumnya</b><span></span></div>
+    <button class="btn" data-go="jelas">Lihat Penjelasan</button>
+    <button class="btn alt" data-pdf>Unduh Laporan (PDF)</button>
+    <details class="card"><summary>Detail teknis &amp; kurva</summary>
+      <table id="tbl"></table>
+      <h3>Kurva volume–waktu</h3><svg id="svgVT" viewBox="0 0 300 150"></svg>
+      <h3>Kurva aliran–volume</h3><svg id="svgFV" viewBox="0 0 300 150"></svg>
+      <h3>Gangguan yang dinilai</h3><ul class="chk" id="dis"></ul>
+      <h3>Sensor tambahan (contoh)</h3><div class="grid3"><div><small>SpO₂</small><b>98</b>%</div><div><small>Napas</small><b>16</b>/mnt</div><div><small>Denyut</small><b>74</b> bpm</div></div>
+      <h3>Gejala hari ini</h3><div class="tags" id="sym"></div>
+    </details>
+  </section>
+
+  <!-- PENJELASAN HASIL -->
+  <section class="view" id="v-jelas">
+    <div class="seg" id="jTabs"><button class="on" data-k="fev1">FEV1</button><button data-k="fvc">FVC</button><button data-k="rat">FEV1/FVC</button></div>
+    <div id="jBody"></div>
   </section>
 
   <!-- RIWAYAT -->
   <section class="view" id="v-riwayat">
-    <h1>Riwayat &amp; tren</h1>
-    <div class="seg"><button class="on" data-t="list">Riwayat</button><button data-t="trend">Tren</button></div>
-    <div id="list"></div>
-    <div id="trend" hidden><div class="card"><h3>Tren FEV1/FVC</h3><svg id="svgTr" viewBox="0 0 300 160"></svg></div>
-    <div class="card"><h3>Prediksi AI</h3><p>Fungsi paru stabil dan membaik. Perkiraan FEV1 pemeriksaan berikutnya: <b>2,65–2,75 L</b>.</p></div></div>
+    <div class="seg" data-grp="r"><button class="on" data-t="tren">Grafik Tren</button><button data-t="list">Daftar Hasil</button></div>
+    <div class="pane" data-grp="r" data-t="tren">
+      <div class="card"><div class="leg"><span style="--k:var(--blue)">FEV1 (L)</span><span style="--k:var(--pri)">FVC (L)</span></div><svg id="svgTr" viewBox="0 0 300 175"></svg></div>
+    </div>
+    <div class="pane" data-grp="r" data-t="list" hidden><div id="list"></div></div>
+    <div class="card" id="last"></div>
+    <button class="btn" data-pdf>Unduh Laporan (PDF)</button>
   </section>
 
-  <!-- PROFIL -->
-  <section class="view" id="v-profil">
-    <h1>Profil pasien</h1>
+  <!-- BANTUAN -->
+  <section class="view" id="v-bantuan">
+    <div class="seg" data-grp="b"><button class="on" data-t="cara">Cara Pakai</button><button data-t="istilah">Istilah</button><button data-t="faq">FAQ</button></div>
+    <div class="pane" data-grp="b" data-t="cara">
+      <div class="card"><ol class="steps">
+        <li><b>Siapkan alat.</b> Pastikan alat menyala dan pasang mouthpiece yang bersih.</li>
+        <li><b>Hubungkan.</b> Di Beranda, ketuk “Hubungkan alat” sampai muncul “Terhubung”.</li>
+        <li><b>Duduk tegak.</b> Bahu rileks dan kaki menapak di lantai.</li>
+        <li><b>Pasang penjepit hidung</b> dan masukkan mouthpiece. Tutup bibir rapat.</li>
+        <li><b>Tarik napas sedalam mungkin,</b> lalu hembuskan sekuat dan secepat mungkin sampai paru terasa kosong (sekitar 6 detik).</li>
+        <li><b>Lihat hasil.</b> Aplikasi memeriksa kualitas tiupan, lalu menampilkan hasil berwarna.</li>
+      </ol></div>
+      <div class="card info">Tips: tes di waktu yang sama setiap hari dan hindari merokok, olahraga berat, atau makan terlalu kenyang sebelum tes.</div>
+      <div class="card"><h3>Arti warna hasil</h3><ul class="chk">
+        <li>Baik<span class="chip ok">Hijau</span></li><li>Kurang baik<span class="chip yl">Kuning</span></li><li>Parah<span class="chip bad">Merah</span></li></ul></div>
+      <button class="btn" data-go="panduan">Lihat panduan bergambar</button>
+    </div>
+    <div class="pane" data-grp="b" data-t="istilah" hidden><div id="gloss"></div></div>
+    <div class="pane faq" data-grp="b" data-t="faq" hidden>
+      <details class="card"><summary>Apakah alat ini menggantikan dokter?</summary><p>Tidak. Hasil dan analisis AI hanya pendukung. Penilaian akhir tetap oleh tenaga kesehatan.</p></details>
+      <details class="card"><summary>Apa arti warna hijau, kuning, dan merah?</summary><p><b>Hijau:</b> semua angka normal. <b>Kuning:</b> ada angka di bawah batas normal (ringan–sedang), sebaiknya konsultasi dan ulangi tes. <b>Merah:</b> ada angka yang sangat rendah, segera hubungi tenaga kesehatan.</p></details>
+      <details class="card"><summary>Apa itu batas bawah normal (LLN)?</summary><p>Angka terendah yang masih ditemukan pada 95% orang sehat dengan usia, tinggi badan, dan jenis kelamin yang sama. Di bawah angka ini, nilai dianggap rendah.</p></details>
+      <details class="card"><summary>Kenapa hasil saya berubah-ubah?</summary><p>Itu bisa terjadi. Tiupan yang kurang kuat, batuk, atau bibir tidak rapat dapat membuat angka tampak lebih rendah. Lihat tren dari beberapa pemeriksaan, bukan satu kali saja.</p></details>
+      <details class="card"><summary>Hasil merah, tetapi saya merasa sehat. Bagaimana?</summary><p>Ulangi tes dengan teknik yang benar. Jika tetap merah, hubungi tenaga kesehatan. Jika sesak berat atau bibir membiru, segera ke IGD.</p></details>
+      <details class="card"><summary>Seberapa sering harus tes?</summary><p>Ikuti anjuran dokter kamu. Tes pada waktu yang sama membuat perbandingan antar hari lebih adil.</p></details>
+      <details class="card"><summary>Apakah data saya tersimpan?</summary><p>Pada versi demo ini, data hanya ada di aplikasi dan hilang saat halaman ditutup.</p></details>
+    </div>
+  </section>
+
+  <!-- PENGATURAN -->
+  <section class="view" id="v-pengaturan">
     <div class="card prof"><div class="ava">F</div><div><b>Faisal Akbar</b><small>ID: P-0003</small></div></div>
-    <div class="card"><dl><dt>Usia</dt><dd>20 tahun</dd><dt>Jenis kelamin</dt><dd>Laki-laki</dd><dt>Tinggi badan</dt><dd>175 cm</dd><dt>Catatan</dt><dd>Kontrol rutin, tanpa keluhan</dd><dt>Tenaga kesehatan</dt><dd>dr. Adzka Channel, S.Ked</dd></dl></div>
-    <button class="btn" data-pdf>Ekspor semua laporan (PDF)</button>
+    <div class="card"><dl><dt>Usia</dt><dd>20 tahun</dd><dt>Jenis kelamin</dt><dd>Laki-laki</dd><dt>Tinggi badan</dt><dd>175 cm</dd><dt>Tenaga kesehatan</dt><dd>dr. Adzka Channel, S.Ked</dd></dl></div>
+    <div class="card"><h3>Tampilan</h3><div class="seg" id="themeSeg" style="margin:0"><button data-p="terang">☀ Terang</button><button data-p="gelap">☾ Gelap</button><button data-p="auto">Otomatis</button></div></div>
+    <button class="btn" data-pdf>Unduh Laporan (PDF)</button>
     <p class="mut note">Hasil AI bersifat pendukung. Interpretasi akhir tetap oleh tenaga kesehatan.</p>
   </section>
 
+  <div class="toast" id="toast" hidden></div>
   <nav class="nav">
     <button class="on" data-go="beranda"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Beranda</button>
-    <button data-go="periksa"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Periksa</button>
     <button data-go="riwayat"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/></svg>Riwayat</button>
-    <button data-go="profil"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profil</button>
+    <button data-go="bantuan"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>Bantuan</button>
+    <button data-go="pengaturan"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Pengaturan</button>
   </nav>
 </main>
 <script src="app.js"></script>
+<script src="pdf.js"></script>
 </body>
 </html>
