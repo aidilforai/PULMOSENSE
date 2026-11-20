@@ -1,122 +1,126 @@
-// ===== Data contoh (nanti diganti data dari alat via Bluetooth/API) =====
-const PRED_FEV1 = 3.22;
+// ===== Data pasien & patokan paru sehat =====
+// Prediksi sehat: laki-laki 20 th, 175 cm (contoh; nanti dari persamaan GLI penuh).
+// LLN (% prediksi) dari Tabel 3 ERS/ATS 2022 (pria 25 th): FEV1 80,5 | FVC 80,9 | FEV1/FVC 86,9
+const PAT={nama:'Faisal Akbar',usia:'20 tahun',jk:'Laki-laki',tb:'175 cm',id:'P-0003',dr:'dr. Adzka Channel, S.Ked'};
+const REF={fev1:3.22,fvc:3.85,lln:{fev1:.805,fvc:.809,rat:.869}};REF.rat=REF.fev1/REF.fvc;
 let history = [
   {d:'15 Jan 2025, 10:24', fev1:2.61, fvc:3.21, pef:6.72, fef:2.90, svc:3.28},
   {d:'10 Jan 2025, 09:11', fev1:2.42, fvc:3.19, pef:6.40, fef:2.70, svc:3.25},
   {d:'03 Jan 2025, 14:30', fev1:2.37, fvc:3.16, pef:6.31, fef:2.62, svc:3.20}
 ];
-const f = (n,d=2)=>n.toFixed(d).replace('.',',');
-const $ = s=>document.querySelector(s), $$ = s=>document.querySelectorAll(s);
+let sel=0; // indeks hasil yang sedang dilihat (dipakai juga oleh PDF)
+const f=(n,d=2)=>n.toFixed(d).replace('.',',');
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 
-// ===== Dark / Light Mode Toggle =====
-const themeToggle = $('#themeToggle');
-const savedTheme = localStorage.getItem('pulmosense_theme');
-if(savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-  document.body.classList.add('dark');
-  if(themeToggle) themeToggle.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+// ===== Analisis (ERS/ATS 2022): z-score, derajat, pola, status =====
+// z-score diestimasi linear dari LLN GLI: z = (obs/pred - 1) / ((1-LLN%)/1,645)
+const SEV=['Normal','Ringan','Sedang','Berat'],PL=['Normal','Sedikit rendah','Rendah','Sangat rendah'],STK={ok:'Baik',warn:'Kurang baik',bad:'Parah'},NM={fev1:'FEV1',fvc:'FVC',rat:'FEV1/FVC'};
+const cls=l=>'st-'+['ok','warn','warn','bad'][l], cc=l=>['ok','yl','yl','bad'][l], ccs={ok:'ok',warn:'yl',bad:'bad'};
+const zs=(o,p,l)=>(o/p-1)/((1-l)/1.645), lvl=z=>z>=-1.645?0:z>=-2.5?1:z>=-4?2:3;
+function analyze(r){
+  const ratio=r.fev1/r.fvc, z={fev1:zs(r.fev1,REF.fev1,REF.lln.fev1),fvc:zs(r.fvc,REF.fvc,REF.lln.fvc),rat:zs(ratio,REF.rat,REF.lln.rat)};
+  const L={fev1:lvl(z.fev1),fvc:lvl(z.fvc),rat:lvl(z.rat)}, obs=L.rat>0, lowF=L.fvc>0, w=Math.max(L.fev1,L.fvc,L.rat), s=w===0?'ok':w<3?'warn':'bad';
+  const abn=Object.keys(L).filter(k=>L[k]>0).map(k=>`${NM[k]} (${SEV[L[k]].toLowerCase()})`).join(', ');
+  const pola=obs?(lowF?'Pola obstruktif dengan FVC rendah; kemungkinan campuran, perlu pengukuran volume paru (TLC).':'Pola obstruktif: FEV1/FVC di bawah batas bawah normal.'):lowF?'FVC rendah dengan rasio normal: kemungkinan restriksi atau pola non-spesifik, perlu pengukuran TLC.':'Pola spirometri normal. Tidak ada tanda hambatan aliran udara.';
+  const near=(s==='ok'&&Math.min(z.fev1,z.fvc,z.rat)<-1.2)?' Ada angka yang mendekati batas bawah normal, pantau secara berkala.':'';
+  const T={ok:['Kondisi paru baik','Semua angka (FEV1, FVC, dan rasionya) berada dalam batas normal.'+near+' Pertahankan gaya hidup sehat.'],
+    warn:['Kondisi paru kurang baik',`Ada angka di bawah batas normal: ${abn}. Konsultasikan dengan tenaga kesehatan dan ulangi pemeriksaan.`],
+    bad:['Kondisi paru parah',`Ada angka yang sangat rendah: ${abn}. Segera hubungi tenaga kesehatan atau fasilitas kesehatan terdekat.`]}[s];
+  return {ratio,z,L,w,s,pola,near,title:T[0],msg:T[1]};
 }
 
-if(themeToggle) {
-  themeToggle.onclick = () => {
-    document.body.classList.toggle('dark');
-    const isDark = document.body.classList.contains('dark');
-    localStorage.setItem('pulmosense_theme', isDark ? 'dark' : 'light');
-    themeToggle.innerHTML = isDark 
-      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
-      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-  };
-}
+// ===== Tema: terang / gelap / otomatis =====
+const root=document.documentElement, mq=matchMedia('(prefers-color-scheme:dark)');
+let pref='auto';try{const v=localStorage.getItem('tema');if(['terang','gelap','auto'].includes(v))pref=v}catch(e){}
+const isDark=()=>pref==='gelap'||(pref==='auto'&&mq.matches);
+function applyTheme(){root.dataset.theme=isDark()?'dark':'light';$('#theme').textContent=isDark()?'☀':'☾';$$('#themeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.p===pref))}
+function setPref(p){pref=p;try{localStorage.setItem('tema',p)}catch(e){}applyTheme()}
+$('#theme').onclick=()=>setPref(isDark()?'terang':'gelap');
+$('#themeSeg').onclick=e=>{const b=e.target.closest('button');if(b)setPref(b.dataset.p)};
+mq.addEventListener('change',applyTheme);applyTheme();
 
 // ===== Navigasi =====
-function go(v){
-  $$('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
-  $$('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===v));
-  scrollTo(0,0);
-}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)go(b.dataset.go)});
+const TT={beranda:'PulmoSense-AI',panduan:'Panduan Pemeriksaan',periksa:'Pemeriksaan',kualitas:'Evaluasi Kualitas',hasil:'Hasil Pemeriksaan',jelas:'Penjelasan Hasil',riwayat:'Riwayat Pemeriksaan',bantuan:'Bantuan',pengaturan:'Pengaturan'};
+const NAVMAP={panduan:'beranda',periksa:'beranda',kualitas:'beranda',hasil:'beranda',jelas:'bantuan'};
+let stack=['beranda'];
+function show(v){$$('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));$('#ttl').textContent=TT[v];$('#back').hidden=v==='beranda';
+  const n=NAVMAP[v]||v;$$('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===n));scrollTo(0,0)}
+function go(v){if(v!==stack[stack.length-1])stack.push(v);show(v)}
+$('#back').onclick=()=>{if(stack.length>1)stack.pop();show(stack[stack.length-1])};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;
+  if(b.closest('.nav'))stack=['beranda'];
+  if(b.dataset.sel!==undefined){sel=+b.dataset.sel;render()}
+  go(b.dataset.go)});
+// tab (seg) umum
+$$('.seg[data-grp]').forEach(s=>s.onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  s.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  $$(`.pane[data-grp="${s.dataset.grp}"]`).forEach(p=>p.hidden=p.dataset.t!==b.dataset.t)});
 
-// ===== Gejala =====
-['Sesak napas','Batuk','Dahak','Aktivitas terbatas'].forEach(s=>{
-  $('#sym').insertAdjacentHTML('beforeend',`<label><input type="checkbox"> ${s}</label>`)});
+// ===== Panduan 3 langkah =====
+const SL=[{i:'🪑',t:'Posisi tubuh',l:['Duduk tegak dan rileks','Bahu rileks','Kaki menapak di lantai']},
+  {i:'👃',t:'Gunakan alat',l:['Pasang penjepit hidung','Masukkan mouthpiece ke mulut','Tutup bibir rapat di sekeliling mouthpiece']},
+  {i:'🌬️',t:'Teknik meniup',l:['Tarik napas sedalam mungkin','Hembuskan sekuat dan secepat mungkin sampai habis','Jangan batuk atau berhenti di tengah']}];
+let si=0;
+function slide(){const s=SL[si];
+  $('#slide').innerHTML=`<div class="cnt">${si+1}/${SL.length}</div><div class="emo">${s.i}</div><h2>${s.t}</h2><ul>${s.l.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  $('#dots').innerHTML=SL.map((_,i)=>`<i class="${i===si?'on':''}"></i>`).join('');
+  $('#next').textContent=si<SL.length-1?'Lanjut':'Mulai pemeriksaan'}
+$('#next').onclick=()=>{if(si<SL.length-1){si++;slide()}else{si=0;slide();go('periksa')}};
+slide();
 
-// ===== Evaluasi Status & Interpretasi (Berdasarkan ERS/ATS 2022) =====
-function evaluateStatus(fev1, fvc) {
-  const ratio = fev1 / fvc;
-  const pct = fev1 / PRED_FEV1 * 100;
-  const zScore = (pct - 100) / 12; // Estimasi deviasi standar GLI
+// ===== Istilah / penjelasan FEV1, FVC, FEV1/FVC =====
+const GL={
+  fev1:{t:'FEV1 itu apa?',d:'Jumlah udara yang bisa kamu hembuskan pada 1 detik pertama saat meniup sekuat dan secepat mungkin. FEV1 menunjukkan seberapa lancar udara keluar dari saluran napas.',low:'Jika rendah: saluran napas bisa menyempit atau paru kurang mampu mengeluarkan udara dengan cepat.'},
+  fvc:{t:'FVC itu apa?',d:'Total udara yang bisa kamu hembuskan sampai habis setelah menarik napas sedalam mungkin. FVC menggambarkan seberapa banyak udara yang bisa dipakai paru kamu.',low:'Jika rendah: paru bisa kurang mengembang, atau tiupan belum sampai habis.'},
+  rat:{t:'FEV1/FVC itu apa?',d:'Perbandingan FEV1 dengan FVC, yaitu berapa persen udara yang keluar dalam 1 detik pertama. Angka ini membantu melihat apakah ada hambatan aliran udara.',low:'Jika rendah: udara sulit keluar karena saluran napas menyempit (pola obstruktif).'}};
+$('#gloss').innerHTML=['fev1','fvc','rat'].map(k=>`<div class="card"><h3>${GL[k].t}</h3><p>${GL[k].d}</p><p class="mut">${GL[k].low}</p></div>`).join('')+
+  `<div class="card"><h3>Batas bawah normal (LLN)</h3><p>Angka terendah yang masih ditemukan pada 95% orang sehat dengan usia, tinggi badan, dan jenis kelamin yang sama. Nilai di bawahnya dianggap rendah.</p><p class="mut">Dasar penilaian: ERS/ATS technical standard 2022 (Stanojevic dkk.).</p></div>`;
 
-  if (ratio < 0.70 || pct < 50 || zScore < -2.5) {
-    return {
-      level: 'merah',
-      text: 'Kondisi Paru Parah / Obstruksi Signifikan',
-      colorClass: 'bad',
-      alertClass: 'red',
-      msg: 'INDIKASI MERAH: Terdeteksi penurunan fungsi paru atau hambatan aliran udara yang signifikan (Z-score < -2.5). Segera konsultasikan ke dokter spesialis paru.'
-    };
-  } else if (pct < 80 || (zScore >= -2.5 && zScore < -1.645) || (ratio >= 0.70 && ratio < 0.75)) {
-    return {
-      level: 'kuning',
-      text: 'Kurang Baik / Hambatan Ringan',
-      colorClass: 'yellow',
-      alertClass: 'yellow',
-      msg: 'INDIKASI KUNING: Fungsi paru kurang optimal atau berada di batas bawah normal (LLN / Z-score -1.65 s.d. -2.5). Perhatikan gejala dan lakukan pemeriksaan ulang.'
-    };
-  } else {
-    return {
-      level: 'hijau',
-      text: 'Baik / Normal',
-      colorClass: 'ok',
-      alertClass: 'green',
-      msg: 'INDIKASI HIJAU: Fungsi paru sehat dan normal (Z-score ≥ -1.645 / Sesuai patokan standar ERS/ATS 2022). Pertahankan pola hidup sehat.'
-    };
-  }
-}
+// ===== Render =====
+const fmt=(k,x)=>k==='rat'?Math.round(x*100)+'%':f(x)+' L', gv=(k,r,a)=>k==='fev1'?r.fev1:k==='fvc'?r.fvc:a.ratio;
+const TODO={ok:['Pertahankan aktivitas fisik dan hindari asap rokok.','Periksa rutin sesuai anjuran dokter.'],
+  warn:['Konsultasikan hasil ini dengan tenaga kesehatan.','Ulangi pemeriksaan dengan teknik tiup yang benar.','Catat gejala: sesak, batuk, atau dahak.'],
+  bad:['Segera hubungi dokter atau fasilitas kesehatan.','Jika sesak berat atau bibir membiru, segera ke IGD.','Hindari aktivitas berat sampai diperiksa.']};
+function meter(k,r,a){
+  const v=gv(k,r,a),p=REF[k],l=p*REF.lln[k],mx=p*1.2,pos=Math.min(100,v/mx*100),lp=l/mx*100,lv=a.L[k];
+  return `<div class="card res ${cls(lv)}"><div class="row"><b>${NM[k]}</b><span class="chip ${cc(lv)}">${PL[lv]}</span></div>
+  <div class="big">${fmt(k,v)}</div>
+  <div class="meter" style="background:linear-gradient(90deg,var(--yelbg) ${lp}%,var(--okbg) ${lp}%)"><u style="left:${lp}%"></u><i style="left:${pos}%"></i></div>
+  <small>Garis tegak = batas bawah normal (${fmt(k,l)}). Prediksi sehat: ${fmt(k,p)}. Kamu: ${Math.round(v/p*100)}% dari prediksi.</small></div>`}
+function banner(e,a,extra=''){e.className='card status st-'+a.s;e.innerHTML=`<b>${a.title}</b><span>${a.msg}</span>${extra}`}
+let notified=null;
+const toast=a=>{const t=$('#toast');t.className='toast st-'+a.s;t.innerHTML=`<b>${a.title}</b><br>${a.msg}`;t.hidden=false;clearTimeout(toast.id);toast.id=setTimeout(()=>t.hidden=true,6000)};
 
-// ===== Render nilai =====
 function render(){
-  const r = history[0], ratio = r.fev1/r.fvc, pct = Math.round(r.fev1/PRED_FEV1*100);
-  $('#d-fev1').textContent=f(r.fev1); $('#d-fvc').textContent=f(r.fvc); $('#d-rat').textContent=f(ratio);
-  $('#d-fev1').nextElementSibling.textContent=`L · ${pct}% prediksi`;
-  $('#d-rat').nextElementSibling.textContent=Math.round(ratio*100)+'%';
-  $('#h-date').textContent=r.d;
-
-  const status = evaluateStatus(r.fev1, r.fvc);
-
-  $('#d-ai').textContent = status.msg;
-  $('#d-gold').textContent = ratio < 0.7 ? 'Derajat GOLD: '+gold(pct) : 'Klasifikasi GOLD tidak berlaku (FEV1/FVC ≥ 0,70, Z-score normal).';
-  
-  const a=$('#alert'); 
-  a.className = `card warn ${status.alertClass}`;
-  a.querySelector('b').textContent = `Pemberitahuan Status: ${status.text}`;
-  a.querySelector('span').textContent = status.msg;
-
-  const statusBanner = $('#statusCardBanner');
-  if(statusBanner) {
-    statusBanner.className = `card warn ${status.alertClass}`;
-    statusBanner.innerHTML = `<b>Indikator Status Paru: <span style="text-transform:uppercase">${status.text}</span></b><p style="margin-top:4px;font-size:13px">${status.msg}</p>`;
-  }
-
-  $('#h-q').className = `chip ${status.colorClass}`;
-  $('#h-q').textContent = status.text.split('/')[0].trim();
-
-  $('#tbl').innerHTML=`<tr><th>Parameter</th><th>Hasil Pasien</th><th>Patokan Sehat (LLN / Z ≥ -1.65)</th></tr>
-   <tr><td>FEV1</td><td>${f(r.fev1)} L (${pct}%)</td><td>Z-score ≥ -1,645 (Normal)</td></tr>
-   <tr><td>FVC</td><td>${f(r.fvc)} L</td><td>Z-score ≥ -1,645 (Normal)</td></tr>
-   <tr><td>FEV1/FVC</td><td>${f(ratio)} (${Math.round(ratio*100)}%)</td><td>≥ 0,70 (Tanpa Obstruksi)</td></tr>
-   <tr><td>PEF</td><td>${f(r.pef)} L/s</td><td>Batas GLI Normal</td></tr>
-   <tr><td>FEF25–75%</td><td>${f(r.fef)} L/s</td><td>Batas GLI Normal</td></tr>
-   <tr><td>SVC</td><td>${f(r.svc)} L</td><td>Batas GLI Normal</td></tr>`;
-   
-  $('#list').innerHTML=history.map(h=>{
-    const st = evaluateStatus(h.fev1, h.fvc);
-    return `<div class="item" data-go="hasil"><div><b>${h.d}</b><small>FEV1 ${f(h.fev1)} L (${Math.round(h.fev1/PRED_FEV1*100)}%)</small></div><span class="chip ${st.colorClass}">${st.text.split('/')[0].trim()}</span></div>`;
-  }).join('');
-  
-  curves(r); trend();
-  const drop = history.length>1 ? (history[0].fev1-history[1].fev1)/history[1].fev1 : 0;
-  $('.dot').classList.toggle('on',drop<=-0.1 || status.level === 'merah');
+  const r=history[sel], a=analyze(r), a0=analyze(history[0]);
+  banner($('#status'),a0,`<small>Pemeriksaan terakhir: ${history[0].d}</small><button class="link" data-go="hasil" data-sel="0" style="margin:0;text-align:left">Lihat hasil lengkap</button>`);
+  banner($('#h-status'),a); $('#h-date').textContent='Pemeriksaan: '+r.d;
+  $('#meters').innerHTML=['fev1','fvc','rat'].map(k=>meter(k,r,a)).join('');
+  $('#todo').innerHTML=TODO[a.s].map(t=>`<li>${t}</li>`).join('');
+  const prev=history[sel+1], drop=prev?(r.fev1-prev.fev1)/prev.fev1:0, al=$('#alert');
+  al.className='card alert '+(drop<=-.1?'st-warn':'st-ok');
+  al.querySelector('span').textContent=!prev?'Ini pemeriksaan pertama.':drop<=-.1?`FEV1 turun ${Math.abs(Math.round(drop*100))}%. Hubungi tenaga kesehatan.`:'Tidak ada penurunan FEV1 yang bermakna.';
+  $('#tbl').innerHTML=`<tr><th>Parameter</th><th>Hasil</th><th>Status</th></tr>`+
+   ['fev1','fvc','rat'].map(k=>`<tr><td>${NM[k]}</td><td>${k==='rat'?f(a.ratio)+' ('+fmt(k,a.ratio)+')':fmt(k,gv(k,r,a))}</td><td><span class="chip ${cc(a.L[k])}">${PL[a.L[k]]}</span></td></tr>`).join('')+
+   `<tr><td>PEF</td><td>${f(r.pef)} L/s</td><td>–</td></tr><tr><td>FEF25–75%</td><td>${f(r.fef)} L/s</td><td>–</td></tr><tr><td>SVC</td><td>${f(r.svc)} L</td><td>–</td></tr>`;
+  const upper=(r.fev1*1000)/(r.pef*60)>8, row=(n,bad,txt)=>`<li>${n}<span class="chip ${bad?'yl':'ok'}">${bad?txt:'Tidak terindikasi'}</span></li>`;
+  $('#dis').innerHTML=row('PPOK / Asma (pola obstruktif)',a.L.rat>0,'Perlu evaluasi')+row('Restriktif',a.L.rat===0&&a.L.fvc>0,'Mungkin, cek TLC')+row('Obstruksi saluran napas atas',upper,'Perlu evaluasi');
+  curves(r); trend(); jelas();
+  $('#list').innerHTML=history.map((h,i)=>{const x=analyze(h);return `<button class="item" data-go="hasil" data-sel="${i}"><div><b>${h.d}</b><small>FEV1 ${f(h.fev1)} L · FVC ${f(h.fvc)} L</small></div><span class="chip ${ccs[x.s]}">${STK[x.s]}</span></button>`}).join('');
+  const h0=history[0];
+  $('#last').innerHTML=`<div class="row"><div><b>Hasil Terakhir</b><small>${h0.d}</small></div><span class="chip ${ccs[a0.s]}">${STK[a0.s]}</span></div>
+   <div class="grid3" style="margin-top:10px"><div><small>FEV1</small><b>${f(h0.fev1)}</b> L</div><div><small>FVC</small><b>${f(h0.fvc)}</b> L</div><div><small>Rasio</small><b>${Math.round(a0.ratio*100)}</b>%</div></div>`;
 }
-function gold(p){return p>=80?'GOLD 1 (Ringan)':p>=50?'GOLD 2 (Sedang)':p>=30?'GOLD 3 (Berat)':'GOLD 4 (Sangat berat)'}
+
+// ===== Penjelasan hasil (tab FEV1 / FVC / FEV1/FVC) =====
+let jk='fev1';
+function jelas(){
+  const r=history[sel],a=analyze(r),k=jk,g=GL[k],v=gv(k,r,a),p=REF[k],l=p*REF.lln[k],lv=a.L[k];
+  $$('#jTabs button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));
+  $('#jBody').innerHTML=`<div class="card"><h3>${g.t}</h3><p>${g.d}</p><p class="mut">${g.low}</p></div>
+  <div class="card res ${cls(lv)}"><small>Hasil kamu</small><div class="big">${fmt(k,v)}</div><p class="mut">Nilai prediksi sehat: ${fmt(k,p)}<br>Batas bawah normal (LLN): ${fmt(k,l)}<br>(= ${Math.round(v/p*100)}% dari prediksi)</p></div>
+  <div class="card status ${cls(lv)}"><b>${lv?'Di bawah batas normal ('+PL[lv].toLowerCase()+')':'Dalam batas normal'}</b><span>${lv?'Nilai kamu lebih rendah dari batas bawah normal. Konsultasikan dengan tenaga kesehatan.':'Nilai kamu berada di atas batas bawah normal.'}</span></div>`}
+$('#jTabs').onclick=e=>{const b=e.target.closest('button');if(b){jk=b.dataset.k;jelas()}};
 
 // ===== Grafik SVG =====
 function axes(w,h){return `<path d="M30 8V${h-20}H${w-8}" stroke="var(--line)" fill="none" stroke-width="1.5"/>`}
@@ -128,21 +132,21 @@ function curves(r){
   $('#svgVT').innerHTML=axes(300,150)+`<path d="${p(vt)}" fill="none" stroke="var(--pri)" stroke-width="3"/><text x="150" y="148" font-size="9" fill="var(--mut)" text-anchor="middle">Waktu (s)</text>`;
   $('#svgFV').innerHTML=axes(300,150)+`<path d="${p(fv)}Z" fill="#12b5a622" stroke="var(--pri)" stroke-width="3"/><text x="150" y="148" font-size="9" fill="var(--mut)" text-anchor="middle">Volume (L)</text>`;
 }
-function trend(){
-  const pts=[...history].reverse().map(h=>h.fev1/h.fvc), n=pts.length;
-  const xy=pts.map((v,i)=>[40+i*(240/Math.max(n-1,1)),140-(v-0.7)/0.2*120]);
-  $('#svgTr').innerHTML=axes(300,160)+[0.7,0.8,0.9].map(v=>`<text x="2" y="${144-(v-0.7)/0.2*120}" font-size="9" fill="var(--mut)">${f(v)}</text>`).join('')+
-   `<path d="${xy.map((q,i)=>(i?'L':'M')+q).join('')}" fill="none" stroke="var(--pri2)" stroke-width="3"/>`+
-   xy.map((q,i)=>`<circle cx="${q[0]}" cy="${q[1]}" r="5" fill="var(--pri)"/><text x="${q[0]}" y="${q[1]-10}" font-size="10" text-anchor="middle" fill="var(--ink)">${f(pts[i])}</text>`).join('');
+function trend(){ // grafik FEV1 dan FVC (L) seperti pada desain
+  const hs=[...history].reverse(), n=hs.length, all=hs.flatMap(h=>[h.fev1,h.fvc]), lo=Math.floor(Math.min(...all)-.3), hi=Math.ceil(Math.max(...all)+.3);
+  const Y=v=>140-(v-lo)/(hi-lo)*120, X=i=>50+i*(230/Math.max(n-1,1));
+  const line=(key,c)=>`<path d="${hs.map((h,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(h[key]).toFixed(1)).join('')}" fill="none" stroke="var(${c})" stroke-width="3"/>`+hs.map((h,i)=>`<circle cx="${X(i)}" cy="${Y(h[key])}" r="4.5" fill="var(${c})"/><text x="${X(i)}" y="${Y(h[key])-9}" font-size="9" text-anchor="middle" fill="var(--ink)">${f(h[key])}</text>`).join('');
+  $('#svgTr').innerHTML=axes(300,160)+[0,1,2,3].map(i=>{const v=lo+(hi-lo)*i/3;return `<text x="2" y="${Y(v)+3}" font-size="9" fill="var(--mut)">${f(v,1)}</text>`}).join('')+
+    line('fvc','--pri')+line('fev1','--blue')+hs.map((h,i)=>`<text x="${X(i)}" y="170" font-size="9" text-anchor="middle" fill="var(--mut)">${h.d.split(',')[0]}</text>`).join('');
 }
-$$('.seg button').forEach(b=>b.onclick=()=>{$$('.seg button').forEach(x=>x.classList.toggle('on',x===b));$('#list').hidden=b.dataset.t!=='list';$('#trend').hidden=b.dataset.t!=='trend'});
 
-// ===== Bluetooth (Web Bluetooth) =====
+// ===== Bluetooth (Web Bluetooth; jika tidak tersedia -> mode simulasi untuk presentasi) =====
 let connected=false;
+function setHint(t){$('#hint').textContent=t||(connected?'Tarik napas dalam, lalu tekan Mulai tiup':'Hubungkan alat di Beranda terlebih dahulu')}
 $('#btnConn').onclick=async()=>{
   let name='PulmoSense-01 (simulasi)';
   try{ if(navigator.bluetooth){const d=await navigator.bluetooth.requestDevice({acceptAllDevices:true}); name=d.name||'Perangkat BLE';} }catch(e){ if(e.name==='NotFoundError')return; }
-  connected=true; $('#devname').textContent=name; const c=$('#conn'); c.textContent='Terhubung'; c.className='chip ok'; $('#btnStart').disabled=false;
+  connected=true; $('#devname').textContent=name; $('#devsub').textContent='Siap digunakan'; const c=$('#conn'); c.textContent='Terhubung'; c.className='chip ok'; $('#btnStart').disabled=false; setHint();
 };
 
 // ===== Uji spirometri (simulasi kurva real-time) =====
@@ -150,87 +154,26 @@ const cv=$('#cv'), cx=cv.getContext('2d');
 function drawBase(){cx.clearRect(0,0,320,170);cx.strokeStyle='#8fa9b5';cx.lineWidth=1;cx.beginPath();cx.moveTo(30,10);cx.lineTo(30,150);cx.lineTo(312,150);cx.stroke();cx.fillStyle='#8fa9b5';cx.font='10px sans-serif';cx.fillText('Aliran (L/s)',2,8);cx.fillText('Waktu (s)',250,166)}
 drawBase();
 $('#btnStart').onclick=()=>{
-  const btn=$('#btnStart'); btn.disabled=true; drawBase(); let t=0; const T=6;
-  $('#hint').textContent='Hembuskan sekuat mungkin…'; cx.strokeStyle='#0b6e8f'; cx.lineWidth=3; cx.beginPath();
+  const btn=$('#btnStart'); btn.disabled=true; drawBase(); let t=0; const T=6, k={baik:1,kurang:.67,parah:.37}[$('#sim').value];
+  setHint('Hembuskan napas sekarang!'); cx.strokeStyle=getComputedStyle(root).getPropertyValue('--pri').trim()||'#0f8f74'; cx.lineWidth=3; cx.beginPath();
   const id=setInterval(()=>{
-    t+=0.1; const fl=7*(t/0.15)*Math.exp(1-t/0.15)*0.37*Math.exp(-t*0.45)+Math.random()*0.08;
+    t+=0.1; const fl=(7*(t/0.15)*Math.exp(1-t/0.15)*0.37*Math.exp(-t*0.45)+Math.random()*0.08)*k;
     const x=30+t/T*280,y=150-fl/8*130; t<=0.11?cx.moveTo(x,y):cx.lineTo(x,y); cx.stroke();
-    const p=Math.min(100,Math.round(t/T*100)); $('#bar').style.width=p+'%'; $('#pct').textContent=p+'%';
+    const p=Math.min(100,Math.round(t/T*100)); $('#bar').style.width=p+'%'; $('#pct').textContent=p+'%'; $('#tm').textContent=f(Math.min(t,T),1)+' s';
     if(t>=T){clearInterval(id);finish();btn.disabled=false}
   },100);
 };
 function finish(){
-  const j=()=>1+(Math.random()-.5)*0.06, fvc=3.21*j(), fev1=fvc*0.81*j();
+  // [FVC, FEV1/FVC, PEF, FEF25-75, SVC] sesuai mode simulasi
+  const P={baik:[3.21,.81,6.72,2.9,3.28],kurang:[2.9,.66,4.5,1.6,3.0],parah:[2.3,.45,2.5,.8,2.5]}[$('#sim').value];
+  const j=()=>1+(Math.random()-.5)*0.06, fvc=P[0]*j(), fev1=fvc*P[1]*j();
   const d=new Date(), m=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][d.getMonth()];
-  history.unshift({d:`${d.getDate()} ${m} ${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`,fev1,fvc,pef:6.72*j(),fef:2.9*j(),svc:3.28*j()});
-  $('#hint').textContent='Pemeriksaan selesai. Kualitas manuver: Layak.'; render(); setTimeout(()=>go('hasil'),700);
+  history.unshift({d:`${d.getDate()} ${m} ${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`,fev1,fvc,pef:P[2]*j(),fef:P[3]*j(),svc:P[4]*j()});
+  sel=0; render(); setHint('Pemeriksaan selesai'); setTimeout(()=>{go('kualitas');setHint()},600);
 }
-$('#bell').onclick=()=>alert($('#alert span').textContent);
+$('#btnRes').onclick=()=>{go('hasil');const a=analyze(history[0]);if(a.s!=='ok')toast(a)};
+
+// ===== Gejala =====
+['Sesak napas','Batuk','Dahak','Aktivitas terbatas'].forEach(s=>{
+  $('#sym').insertAdjacentHTML('beforeend',`<label><input type="checkbox"> ${s}</label>`)});
 render();
-
-// ===== Ekspor PDF: dengan Patokan Ukuran Paru Sehat (ERS/ATS 2022) & Indikator Status =====
-function buildPDF(){
-  const W=595,H=842,c=[],A=s=>String(s).replace(/[^\x20-\x7E]/g,m=>({'–':'-','≥':'>=','₂':'2','≤':'<='}[m]||'')).replace(/[\\()]/g,'\\$&');
-  const col=a=>a.join(' '),TEAL=[.04,.43,.56],GRN=[.09,.54,.32],INK=[.05,.17,.23],MUT=[.36,.46,.52],LINE=[.84,.9,.92];
-  const T=(x,y,s,z=10,b=0,k=INK,al=0)=>{const w=al?A(s).length*z*.5:0;c.push(`BT /F${b?2:1} ${z} Tf ${col(k)} rg ${(x-(al==1?w/2:al==2?w:0)).toFixed(1)} ${(H-y).toFixed(1)} Td (${A(s)}) Tj ET`)};
-  const R=(x,y,w,h,k)=>c.push(`${col(k)} rg ${x} ${H-y-h} ${w} ${h} re f`);
-  const Ln=(x1,y1,x2,y2,k=LINE,w=.8)=>c.push(`${col(k)} RG ${w} w ${x1} ${H-y1} m ${x2} ${H-y2} l S`);
-  const P=(pts,k,w=1.8)=>c.push(`${col(k)} RG ${w} w 1 J 1 j `+pts.map((p,i)=>`${p[0].toFixed(1)} ${(H-p[1]).toFixed(1)} ${i?'l':'m'}`).join(' ')+' S');
-  const r=history[0],ratio=r.fev1/r.fvc,pct=Math.round(r.fev1/PRED_FEV1*100),obs=ratio<.7;
-  const status=evaluateStatus(r.fev1,r.fvc);
-
-  // header
-  R(0,0,W,78,TEAL);T(40,38,'PulmoSense-AI',22,1,[1,1,1]);T(40,58,'Laporan Hasil Pemeriksaan Spirometri & Standar Paru Sehat',11,0,[.85,.95,.97]);
-  T(W-40,38,'Dicetak: '+new Date().toLocaleDateString('id-ID'),9,0,[1,1,1],2);T(W-40,58,'Status: '+status.text,9,0,[1,1,1],2);
-  
-  // pasien
-  T(40,94,'Data pasien',12,1,TEAL);Ln(40,100,W-40,100);
-  [['Nama','Budi Santoso'],['Usia','32 tahun'],['Jenis kelamin','Laki-laki'],['Tinggi badan','175 cm']].forEach((q,i)=>{const x=40+(i%2)*260,y=116+Math.floor(i/2)*16;T(x,y,q[0],9.5,0,MUT);T(x+80,y,q[1],9.5,1)});
-  T(40,154,'ID pasien: P-0003    Tenaga kesehatan: dr. Andi Pratama, Sp.P',9,0,MUT);
-
-  // Patokan Paru Sehat (ERS/ATS 2022)
-  T(40,176,'Patokan Ukuran Paru Sehat (ERS/ATS 2022 / Stanojevic et al.)',12,1,TEAL);
-  R(40,184,515,36,[.92,.97,.95]);
-  T(48,198,'- Batas Bawah Normal (LLN) / Z-score >= -1,645 (5th percentile dari populasi sehat).',9,0,INK);
-  T(48,212,'- Klasifikasi Status: Hijau (Normal/Baik), Kuning (Ringan/Kurang Baik), Merah (Obstruksi Berat/Parah).',9,0,INK);
-
-  // tabel hasil
-  T(40,234,'Hasil pemeriksaan & perbandingan patokan',12,1,TEAL);R(40,242,515,18,[.9,.96,.97]);
-  T(48,254,'Parameter',9,1,MUT);T(200,254,'Hasil Pasien',9,1,MUT);T(340,254,'Patokan Sehat (LLN)',9,1,MUT);
-  const rows=[
-    ['FEV1',f(r.fev1)+' L ('+pct+'%)','Z-score >= -1,645'],
-    ['FVC',f(r.fvc)+' L','Z-score >= -1,645'],
-    ['FEV1/FVC',f(ratio)+' ('+Math.round(ratio*100)+'%)','>= 0,70 (Normal)'],
-    ['PEF',f(r.pef)+' L/s','Batas GLI Normal'],
-    ['FEF25-75%',f(r.fef)+' L/s','Batas GLI Normal'],
-    ['SVC',f(r.svc)+' L','Batas GLI Normal']
-  ];
-  rows.forEach((q,i)=>{const y=276+i*18;T(48,y,q[0],9.5);T(200,y,q[1],9.5,1);T(340,y,q[2],9.5,0,MUT);Ln(40,y+5,555,y+5)});
-
-  // kurva
-  const box=(x,y,w,h,title,xl,pts)=>{T(x,y-6,title,10,1,TEAL);Ln(x,y,x,y+h,MUT,1);Ln(x,y+h,x+w,y+h,MUT,1);T(x+w/2,y+h+12,xl,8,0,MUT,1);P(pts.map(p=>[x+p[0]*w,y+h-p[1]*h]),TEAL,2)};
-  const vt=[],fv=[];for(let i=0;i<=40;i++){const t=i/40*6;vt.push([t/6,(1-Math.exp(-t*1.1))*r.fvc/4])}
-  for(let i=0;i<=40;i++){const x=i/40;fv.push([x*r.fvc/4,r.pef*Math.min(1,x*6)*(1-x)**.9/8])}
-  T(40,410,'Kurva spirometri',12,1,TEAL);
-  box(60,438,200,100,'Kurva volume-waktu','Waktu (s)',vt);box(340,438,200,100,'Kurva aliran-volume','Volume (L)',fv);
-
-  // interpretasi klinis
-  T(40,560,'Interpretasi Klinis & Indikator Status',12,1,TEAL);
-  R(40,568,515,48,[.95,.95,.95]);
-  T(48,582,`Status Indikator: ${status.text.toUpperCase()}`,10,1,status.level==='merah'?[.8,.1,.1]:status.level==='kuning'?[.7,.5,0]:GRN);
-  T(48,598,status.msg,9,0,INK);
-
-  Ln(40,H-50,W-40,H-50);T(W/2,H-34,'Hasil analisis AI dan patokan standar ERS/ATS 2022 bersifat pendukung keputusan klinis.',8,0,MUT,1);
-
-  const st=c.join('\n'),o=['<</Type/Catalog/Pages 2 0 R>>','<</Type/Pages/Kids[3 0 R]/Count 1>>',`<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${W} ${H}]/Resources<</Font<</F1 5 0 R/F2 6 0 R>>>>/Contents 4 0 R>>`,`<</Length ${st.length}>>\nstream\n${st}\nendstream`,'<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>','<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>'];
-  let out='%PDF-1.4\n',xr=[];o.forEach((b,i)=>{xr.push(out.length);out+=`${i+1} 0 obj\n${b}\nendobj\n`});
-  const xo=out.length;out+=`xref\n0 ${o.length+1}\n0000000000 65535 f \n`+xr.map(n=>String(n).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<</Size ${o.length+1}/Root 1 0 R>>\nstartxref\n${xo}\n%%EOF`;
-  return new Blob([new Uint8Array([...out].map(ch=>ch.charCodeAt(0)))],{type:'application/pdf'});
-}
-function exportPDF(btn){
-  const a=document.createElement('a'),d=new Date().toISOString().slice(0,10);
-  a.href=URL.createObjectURL(buildPDF());a.download=`Laporan_PulmoSense_BudiSantoso_${d}.pdf`;
-  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-  const t=btn.textContent;btn.textContent='Laporan PDF terunduh';setTimeout(()=>btn.textContent=t,2000);
-}
-$$('[data-pdf]').forEach(b=>b.onclick=()=>exportPDF(b));
